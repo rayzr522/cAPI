@@ -4,36 +4,36 @@
 
 -- General utility functions:
 function string:append(txt)
-    self = self..txt
+    self = self .. txt
+    return self
 end
 
 function string:split(sSeparator, nMax, bRegexp)
-	assert(sSeparator ~= '')
-	assert(nMax == nil or nMax >= 1)
+    assert(sSeparator ~= "")
+    assert(nMax == nil or nMax >= 1)
 
-	local aRecord = {}
+    local aRecord = {}
 
-	if self:len() > 0 then
-		local bPlain = not bRegexp
-		nMax = nMax or -1
+    if self:len() > 0 then
+        local bPlain = not bRegexp
+        nMax = nMax or -1
 
-		local nField, nStart = 1, 1
-		local nFirst,nLast = self:find(sSeparator, nStart, bPlain)
-		while nFirst and nMax ~= 0 do
-			aRecord[nField] = self:sub(nStart, nFirst-1)
-			nField = nField+1
-			nStart = nLast+1
-			nFirst,nLast = self:find(sSeparator, nStart, bPlain)
-			nMax = nMax-1
-		end
-		aRecord[nField] = self:sub(nStart)
-	end
+        local nField, nStart = 1, 1
+        local nFirst, nLast = self:find(sSeparator, nStart, bPlain)
+        while nFirst and nMax ~= 0 do
+            aRecord[nField] = self:sub(nStart, nFirst - 1)
+            nField = nField + 1
+            nStart = nLast + 1
+            nFirst, nLast = self:find(sSeparator, nStart, bPlain)
+            nMax = nMax - 1
+        end
+        aRecord[nField] = self:sub(nStart)
+    end
 
-	return aRecord
+    return aRecord
 end
 
 function table.range(tInput, nStart, nEnd)
-
     nEnd = nEnd or #tInput
 
     local out = tInput
@@ -42,12 +42,11 @@ function table.range(tInput, nStart, nEnd)
         table.remove(out, i)
     end
 
-    for i=nEnd, #tInput do
+    for i = nEnd, #tInput do
         table.remove(out, i)
     end
 
     return out
-
 end
 
 function tell(ply, msg)
@@ -60,10 +59,14 @@ function tell(ply, msg)
     ply:PrintMessage(3, msg)
 end
 
-function getPlayer( name )
-    for i=1, game.MaxPlayers( ) do
-        local ent = Entity( i )
-        if ent ~= NULL && string.len(name)>0 && (string.upper(ent:GetName( ))==string.upper(name) || string.sub(string.upper(ent:GetName( )),0,string.len(name)) == string.upper(name)) then
+function getPlayer(name)
+    for i = 1, game.MaxPlayers() do
+        local ent = Entity(i)
+        if
+            ent ~= NULL and string.len(name) > 0 and
+                (string.upper(ent:GetName()) == string.upper(name) or
+                    string.sub(string.upper(ent:GetName()), 0, string.len(name)) == string.upper(name))
+         then
             return ent
         end
     end
@@ -72,26 +75,25 @@ end
 
 -- Command API methods / objects etc.
 cAPI = {}
-cAPI.latestCommand=nil
+cAPI.latestCommand = nil
 cAPI.commands = {}
 
 -- Loads a command from a string (matches the pattern commands/command_*.lua)
 function cAPI:loadCommand(command)
-    cAPI.latestCommand=command
-    include("commands/command_"..command..".lua")
-    print("'"..command.."' loaded")
+    cAPI.latestCommand = command
+    include("commands/command_" .. command .. ".lua")
+    print("'" .. command .. "' loaded")
 end
 
 -- Initializes the CMD info object and returns it
 function cAPI:initCommand(label, usage, desc)
-
     if self.latestCommand == nil then
         print("Tried to call initCommand before a command was properly loaded!")
         return {}
     end
 
     local CMD = {}
-    CMD.id="command_"..self.latestCommand
+    CMD.id = "command_" .. self.latestCommand
     CMD.label = label
     CMD.usage = usage
     CMD.desc = desc
@@ -101,43 +103,37 @@ function cAPI:initCommand(label, usage, desc)
         callback = nil
     }
 
-    return CMD;
-
+    return CMD
 end
 
 function cAPI:getCommand(label)
-
     return self.commands[label]
-
 end
 
 function cAPI:getInfo(label)
-
     return self:getCommand(label).info
-
 end
 
 function cAPI:showHelp(ply)
-
     tell(ply, " ")
     tell(ply, "----------------------------------------------------------------------")
-    for k,v in pairs(self.commands) do
-        tell(ply, v.info.usage..": "..v.info.desc)
+    for k, v in pairs(self.commands) do
+        tell(ply, v.info.usage .. ": " .. v.info.desc)
     end
     tell(ply, "----------------------------------------------------------------------")
     tell(ply, " ")
-
 end
 
 -- Register a handler for a CMD info (WIP)
 function cAPI:registerHandler(CMD, callback)
-
     if CMD == nil then
         print("CMD info must be provided to register a handler!")
         return
     end
 
-    callback = callback or function(ply, args, isTeam) return nil end
+    callback = callback or function(ply, args, isTeam)
+            return nil
+        end
 
     if self.commands[CMD.label] == nil then
         print("There is no command registered under that label!")
@@ -145,49 +141,51 @@ function cAPI:registerHandler(CMD, callback)
     end
 
     if self.commands[CMD.label].callback ~= nil then
-        print("There is already a handler registered for the command '"..CMD.label.."'")
+        print("There is already a handler registered for the command '" .. CMD.label .. "'")
         return
     end
 
     self.commands[CMD.label].callback = callback
 
-    concommand.Add (CMD.label, function ( ply, cmd, args, str )
-
-        tell(ply, cAPI:getCommand(CMD.label).callback(ply, args, false) or cAPI:getInfo(CMD.label).usage)
-
-    end)
-
+    concommand.Add(
+        CMD.label,
+        function(ply, cmd, args, str)
+            tell(ply, cAPI:getCommand(CMD.label).callback(ply, args, false) or cAPI:getInfo(CMD.label).usage)
+        end
+    )
 end
 
-hook.Add ( "PlayerSay", "cAPI_handler", function (ply, text, isTeam)
+hook.Add(
+    "PlayerSay",
+    "cAPI_handler",
+    function(ply, text, isTeam)
+        if not text:StartWith("/") and not text:StartWith("!") then
+            return
+        end
 
-    if !text:StartWith("/") && !text:StartWith("!") then
-        return
-    end
+        if text:len() < 2 then
+            return
+        end
 
-    if text:len() < 2 then
-        return
-    end
+        local split = text:split(" ")
+        local label = string.sub(split[1], 2)
 
-    local split = text:split(" ")
-    local label = string.sub(split[1], 2)
+        if (label == "help") then
+            cAPI:showHelp(ply)
+            return ""
+        end
 
-    if (label == "help") then
-        cAPI:showHelp(ply)
+        local command = cAPI.commands[label]
+
+        if command == nil then
+            tell(ply, "Failed to find command '" .. label .. "'\nDo /help to see a list of commands.")
+            return ""
+        end
+
+        tell(ply, command.callback(ply, table.range(split, 2), isTeam) or command.info.usage)
         return ""
     end
-
-    local command = cAPI.commands[label]
-
-    if command == nil then
-        tell(ply, "Failed to find command '"..label.."'\nDo /help to see a list of commands.")
-        return ""
-    end
-
-    tell(ply, command.callback(ply, table.range(split, 2), isTeam) or command.info.usage)
-    return ""
-
-end)
+)
 
 -------------------
 -- Load commands --
